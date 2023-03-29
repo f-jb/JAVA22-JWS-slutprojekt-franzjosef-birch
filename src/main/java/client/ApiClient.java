@@ -1,8 +1,8 @@
 package client;
 
+import api.JSONPayload;
 import com.google.gson.Gson;
 import jakarta.ws.rs.core.MediaType;
-import api.JSONPayload;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,32 +16,33 @@ public class ApiClient {
     private String baseurl;
 
     public ApiClient(String baseurl) {
-        this.baseurl= baseurl;
+        this.baseurl = baseurl;
     }
 
     public String getMessage(int messageId) throws IOException {
-        URL serverUrl = new URL(baseurl+"/" +messageId);
+        // appends the message ID and sends a get request
+        URL serverUrl = new URL(baseurl + "/" + messageId);
         HttpURLConnection apiconnection = (HttpURLConnection) serverUrl.openConnection();
         apiconnection.setRequestMethod("GET");
         apiconnection.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
         apiconnection.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
         apiconnection.connect();
 
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(apiconnection.getInputStream(), StandardCharsets.UTF_8))) {
-            StringBuilder response = new StringBuilder();
-            String responseLine = null;
-            while ((responseLine = br.readLine()) != null) {
-                response.append(responseLine.trim());
-            }
-
-            Gson gson = new Gson();
-            JSONPayload jsonPayload = gson.fromJson(response.toString(), JSONPayload.class);
-            return jsonPayload.getMessage().getEncryptedText();
+        // Return an empty string on a 404 response
+        if (apiconnection.getResponseCode() == 404) {
+            return "";
         }
 
+        // reads the response
+        String response = responseToString(apiconnection);
 
+        // converts the jsonobject-as-string to a javaobject that we can manipulate
+        Gson gson = new Gson();
+        JSONPayload jsonPayload = gson.fromJson(response, JSONPayload.class);
+        return jsonPayload.getMessage().getEncryptedText();
     }
+
+
     String decryptMessage(JSONPayload jsonPayload, int messageId) throws IOException {
         // creates connection and sets properties to JSON and method to POST and enables attaching payload
         URL serverUrl = new URL(baseurl + "/" + messageId);
@@ -52,30 +53,21 @@ public class ApiClient {
         apiconnection.setDoOutput(true);
 
         // Translate json to data for post
-        try (OutputStream os = apiconnection.getOutputStream()) {
-            Gson gson = new Gson();
-            byte[] input = gson.toJson(jsonPayload).getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-        }
+        sendPayloadToServer(apiconnection,new Gson().toJson(jsonPayload));
 
         // Send the request to the server
         apiconnection.connect();
 
         // Translate the response to String
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(apiconnection.getInputStream(), StandardCharsets.UTF_8))) {
-            StringBuilder response = new StringBuilder();
-            String responseLine = null;
-            while ((responseLine = br.readLine()) != null) {
-                response.append(responseLine.trim());
-            }
+        String response = responseToString(apiconnection);
+
             Gson gson = new Gson();
-            JSONPayload decryptedJson = gson.fromJson(response.toString(), JSONPayload.class);
+            JSONPayload decryptedJson = gson.fromJson(response, JSONPayload.class);
             return decryptedJson.getMessage().getPlainText();
         }
-    }
+
     boolean messageRead(int messageId) throws IOException {
-        URL serverUrl = new URL(baseurl+"/" +messageId);
+        URL serverUrl = new URL(baseurl + "/" + messageId);
         HttpURLConnection apiconnection = (HttpURLConnection) serverUrl.openConnection();
         apiconnection.setRequestMethod("PATCH");
         apiconnection.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
@@ -84,8 +76,9 @@ public class ApiClient {
         return apiconnection.getResponseCode() == 200;
 
     }
+
     boolean deleteMessage(int messageId) throws IOException {
-        URL serverUrl = new URL(baseurl+"/" +messageId);
+        URL serverUrl = new URL(baseurl + "/" + messageId);
         HttpURLConnection apiconnection = (HttpURLConnection) serverUrl.openConnection();
         apiconnection.setRequestMethod("DELETE");
         apiconnection.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
@@ -94,6 +87,7 @@ public class ApiClient {
         return apiconnection.getResponseCode() == 200;
 
     }
+
     public String postMessage(JSONPayload jsonPayload) throws IOException {
         // creates connection and sets properties to JSON and method to POST and enables attaching payload
         URL serverUrl = new URL(baseurl);
@@ -102,27 +96,42 @@ public class ApiClient {
         apiconnection.setRequestProperty("Accept", MediaType.APPLICATION_JSON);
         apiconnection.setRequestProperty("Content-Type", MediaType.APPLICATION_JSON);
         apiconnection.setDoOutput(true);
+        // stops redirection so we can get the created resource
+        apiconnection.setInstanceFollowRedirects(false);
 
         // Translate json to data for post
-        try (OutputStream os = apiconnection.getOutputStream()) {
-            Gson gson = new Gson();
-            byte[] input = gson.toJson(jsonPayload).getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-        }
+        sendPayloadToServer(apiconnection,new Gson().toJson(jsonPayload));
 
         // Send the request to the server
         apiconnection.connect();
 
-        // Translate the response to String
+        // Returns the URI of the created message
+        return apiconnection.getHeaderField("Location");
+
+    }
+
+    String responseToString(HttpURLConnection httpURLConnection) {
         try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(apiconnection.getInputStream(), StandardCharsets.UTF_8))) {
+                new InputStreamReader(httpURLConnection.getInputStream(), StandardCharsets.UTF_8))) {
             StringBuilder response = new StringBuilder();
             String responseLine = null;
             while ((responseLine = br.readLine()) != null) {
                 response.append(responseLine.trim());
             }
-            System.out.println(response.toString());
             return response.toString();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+    void sendPayloadToServer(HttpURLConnection httpURLConnection, String payload) {
+        try (OutputStream os = httpURLConnection.getOutputStream()) {
+            byte[] input =payload.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
+
 }

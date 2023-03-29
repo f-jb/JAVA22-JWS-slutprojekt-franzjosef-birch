@@ -1,10 +1,20 @@
 package api;
 
 public class JSONPayload {
-    Settings settings = new Settings();
-    Message message = new Message();
+    Settings settings;
+    Message message;
 
     public JSONPayload() {
+
+    }
+    public JSONPayload(int leftRotor, int middleRotor, int rightRotor, int reflector, String counters) {
+        this.settings = new Settings();
+        this.message = new Message();
+        this.settings.leftRotor = leftRotor;
+        this.settings.middleRotor = middleRotor;
+        this.settings.rightRotor= rightRotor;
+        this.settings.reflector= reflector;
+        this.settings.counterSettings = counters;
 
     }
 
@@ -27,7 +37,7 @@ public class JSONPayload {
         public String getPlainText() {
             return plainText;
         }
-        void setPlainText(String plainText) {
+        public void setPlainText(String plainText) {
             this.plainText = plainText;
         }
         public String getEncryptedText() {
