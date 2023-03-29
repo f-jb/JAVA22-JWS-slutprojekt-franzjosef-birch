@@ -14,8 +14,17 @@ public class DatabaseConnector {
         return dataSource.getConnection();
     }
 
+    private Connection testConnect() throws SQLException {
+        Connection connection = DriverManager.getConnection(
+                "jdbc:mariadb://localhost:3306/test",
+                "enigmaAPI", "password123"
+        );
+        return connection;
+    }
+
     public String getMessage(int messageId) throws SQLException, NamingException {
-        Connection connection = connect();
+        //Connection connection = connect();
+        Connection connection = testConnect();
 
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT message FROM messages WHERE message_id = (?);");
         preparedStatement.setInt(1, messageId);

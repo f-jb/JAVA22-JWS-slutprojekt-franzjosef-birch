@@ -2,6 +2,7 @@ package enigma;
 
 import enigma.Engine;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 
 class EngineTest {
 
@@ -12,7 +13,7 @@ class EngineTest {
         Engine encodeEngine = new Engine(1, 2, 3, 1, "AAA");
         String messageToEncode = "This is an enigma machine";
         String testEncodedMessage = encodeEngine.encode(messageToEncode);
-
+        assertEquals(encodedMessage,testEncodedMessage);
     }
 
     @Test
@@ -20,6 +21,7 @@ class EngineTest {
         Engine decodeEngine = new Engine(1, 2, 3, 1, "AAA");
         String testDecodedMessage = decodeEngine.encode(encodedMessage);
         String decodedMessage = "THISISANENIGMAMACHINE";
+        assertEquals(decodedMessage,testDecodedMessage);
 
     }
 }

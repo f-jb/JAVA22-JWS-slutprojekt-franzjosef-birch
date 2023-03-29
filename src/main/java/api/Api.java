@@ -5,8 +5,10 @@ import database.DatabaseConnector;
 import enigma.Engine;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
+import jakarta.ws.rs.ext.*;
 
 import javax.naming.NamingException;
+import java.net.http.HttpRequest;
 import java.sql.SQLException;
 
 @Path("/v1/api")
@@ -50,13 +52,13 @@ public class Api {
             JSONPayload jsonPayload = gson.fromJson(payload, JSONPayload.class);
 
             // Decrypts the message
-            Engine engine = new Engine(jsonPayload.getRotorsAndReflector(), jsonPayload.getCounterSettings());
-            String plainText = engine.encode(jsonPayload.getMessage().getEncryptedText());
-
-            // sets the plainText, encryptedText and messageID
-            jsonPayload.getMessage().setPlainText(plainText);
             jsonPayload.getMessage().setEncryptedText(databaseConnector.getMessage(messageId));
             jsonPayload.getMessage().setMessageId(messageId);
+
+            // sets the plainText, encryptedText and messageID
+            Engine engine = new Engine(jsonPayload.getSettings().getRotorsAndReflector(), jsonPayload.getSettings().getCounterSettings());
+            String plainText = engine.encode(jsonPayload.getMessage().getEncryptedText());
+            jsonPayload.getMessage().setPlainText(plainText);
 
             return Response.status(Response.Status.OK).entity(gson.toJson(jsonPayload)).build();
         }
@@ -65,12 +67,12 @@ public class Api {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response post(String payload, @Context UriInfo uriInfo) throws SQLException, NamingException {
+    public Response postMessage(String payload, @Context UriInfo uriInfo) throws SQLException, NamingException {
         Gson gson = new Gson();
         JSONPayload jsonPayload = gson.fromJson(payload, JSONPayload.class);
 
         // Encrypts the plainText message
-        Engine engine = new Engine(jsonPayload.getRotorsAndReflector(), jsonPayload.getCounterSettings());
+        Engine engine = new Engine(jsonPayload.getSettings().getRotorsAndReflector(), jsonPayload.getSettings().getCounterSettings());
         String encryptedMessage = engine.encode(jsonPayload.getMessage().getPlainText());
 
         // Sends the encryptedMessage to the Database
@@ -82,7 +84,7 @@ public class Api {
         jsonPayload.getMessage().setEncryptedText(encryptedMessage);
         jsonPayload.getMessage().setMessageId(messageId);
 
-        // Builds and returns the URL of the message
+        // Builds and returns the Location of the message
         UriBuilder uriBuilder = uriInfo.getAbsolutePathBuilder();
         uriBuilder.path(Integer.toString(messageId));
         return Response.created(uriBuilder.build()).build();
@@ -107,4 +109,5 @@ public class Api {
         int returnCode = databaseConnector.messageRead(messageId);
         return Response.status(returnCode).build();
     }
+
 }
