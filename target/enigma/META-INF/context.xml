@@ -1,0 +1,11 @@
+<Context>
+<Resource name="jdbc/mariadb" auth="Container" type="javax.sql.DataSource"
+          driverClassName="org.mariadb.jdbc.Driver" factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+          url="jdbc:mariadb://localhost:3306/test"
+          maxActive="20" maxIdle="10" maxWait="-1" username="enigmaAPI" password="password123"/>
+<ResourceLink name="jdbc/mariadb"
+              global="jdbc/mariadb"
+              auth="Container"
+              type="javax.sql.DataSource"/>
+    </Context>
+        <!--          url="jdbc:mariadb:User=enigmaAPI;Password=password123;Database=test;Server=localhost;Port=3306;" -->
