@@ -7,24 +7,22 @@ import javax.sql.DataSource;
 import java.sql.*;
 
 public class DatabaseConnector {
-    private Connection connect() throws NamingException, SQLException {
-        // Get the Database settings from the context. See src/main/webapp/META-INF/context.xml for settings
-        Context context = new InitialContext();
-        DataSource dataSource = (DataSource) context.lookup("java:/comp/env/jdbc/mariadb");
-        return dataSource.getConnection();
-    }
+    Connection connection;
+    public DatabaseConnector(Connection connection){
+        // Allows us to supply our own connection for e.g. Testing purposes
+        this.connection = connection;
 
-    private Connection testConnect() throws SQLException {
-        Connection connection = DriverManager.getConnection(
-                "jdbc:mariadb://localhost:3306/test",
-                "enigmaAPI", "password123"
-        );
-        return connection;
+    }
+    public DatabaseConnector() throws NamingException, SQLException {
+
+            // Get the Database settings from the context. See src/main/webapp/META-INF/context.xml for settings
+            Context context = new InitialContext();
+            DataSource dataSource = (DataSource) context.lookup("java:/comp/env/jdbc/mariadb");
+            this.connection = dataSource.getConnection();
+
     }
 
     public String getMessage(int messageId) throws SQLException, NamingException {
-        //Connection connection = connect();
-        Connection connection = testConnect();
 
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT message FROM messages WHERE message_id = (?);");
         preparedStatement.setInt(1, messageId);
@@ -41,7 +39,6 @@ public class DatabaseConnector {
     }
 
     public int insertMessage(String message) throws SQLException, NamingException {
-        Connection connection = connect();
 
         // Prepares the SQL-statement and we want it to return the message_id of the inserted message
         PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO messages (message) VALUES (?);", Statement.RETURN_GENERATED_KEYS);
@@ -57,7 +54,6 @@ public class DatabaseConnector {
     }
 
     public int deleteMessage(int messageId) throws SQLException, NamingException {
-        Connection connection = connect();
         PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM messages WHERE message_id = (?);");
         preparedStatement.setInt(1, messageId);
 
@@ -70,7 +66,6 @@ public class DatabaseConnector {
     }
 
     public int messageRead(int messageId) throws SQLException, NamingException {
-        Connection connection = connect();
         PreparedStatement preparedStatement = connection.prepareStatement("UPDATE messages SET message_read=true WHERE message_id = (?);");
         preparedStatement.setInt(1, messageId);
 

@@ -14,6 +14,14 @@ import java.sql.SQLException;
 @Path("/v1/api")
 @Produces("application/json")
 public class Api {
+    DatabaseConnector databaseConnector;
+    Api() throws SQLException, NamingException {
+        this.databaseConnector = new DatabaseConnector();
+    }
+    Api(DatabaseConnector databaseConnector){
+        // takes an databaseconnector as an argument for testing purposes
+        this.databaseConnector = databaseConnector;
+    }
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -52,7 +60,7 @@ public class Api {
             JSONPayload jsonPayload = gson.fromJson(payload, JSONPayload.class);
 
             // Decrypts the message
-            jsonPayload.getMessage().setEncryptedText(databaseConnector.getMessage(messageId));
+            jsonPayload.getMessage().setEncryptedText(message);
             jsonPayload.getMessage().setMessageId(messageId);
 
             // sets the plainText, encryptedText and messageID
